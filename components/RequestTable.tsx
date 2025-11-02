@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { VacationRequest, RequestStatus } from '../types';
 import { REQUEST_STATUSES } from '../constants';
 import { formatDateToSpanish } from '../utils/dateUtils';
+import { TrashIcon } from './icons';
 
 const StatusBadge: React.FC<{ status: RequestStatus }> = ({ status }) => {
-    const baseClasses = "px-2 py-1 text-xs font-medium rounded-full";
+    const baseClasses = "px-2 py-0.5 text-xs font-semibold rounded-full inline-block";
     const statusClasses: { [key in RequestStatus]: string } = {
         [RequestStatus.PENDING]: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
         [RequestStatus.APPROVED]: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
@@ -20,14 +21,17 @@ interface RequestTableProps {
     actionType?: 'approve-reject' | 'edit' | 'none';
     onAction?: (id: number, status: RequestStatus, comment?: string) => void;
     onEdit?: (request: VacationRequest) => void;
+    onDelete?: (id: number) => void;
 }
 
-const RequestTable: React.FC<RequestTableProps> = ({ requests, showEmployeeColumn = false, actionType = 'none', onAction, onEdit }) => {
+const RequestTable: React.FC<RequestTableProps> = ({ requests, showEmployeeColumn = false, actionType = 'none', onAction, onEdit, onDelete }) => {
     const [actionState, setActionState] = useState<{
         action: 'approve' | 'reject' | null;
         requestId: number | null;
     }>({ action: null, requestId: null });
     const [comment, setComment] = useState('');
+    const [requestToDelete, setRequestToDelete] = useState<number | null>(null);
+
 
     const handleConfirmAction = () => {
         if (!actionState.action || actionState.requestId === null) return;
@@ -47,65 +51,80 @@ const RequestTable: React.FC<RequestTableProps> = ({ requests, showEmployeeColum
         setActionState({ action: null, requestId: null });
         setComment('');
     };
-
-    const getColSpan = () => {
-        let span = 5; // Base columns
-        if (showEmployeeColumn) span++;
-        if (actionType !== 'none') span++;
-        return span;
+    
+    const handleConfirmDelete = () => {
+        if (requestToDelete === null) return;
+        onDelete?.(requestToDelete);
+        setRequestToDelete(null);
     };
+
+    if (requests.length === 0) {
+        return (
+            <div className="text-center text-gray-500 py-8">
+                No hay solicitudes para mostrar.
+            </div>
+        );
+    }
 
     return (
         <>
-            <div className="overflow-x-auto relative shadow-md sm:rounded-lg">
-                <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                        <tr>
-                            {showEmployeeColumn && <th scope="col" className="py-3 px-6">Empleado</th>}
-                            <th scope="col" className="py-3 px-6">Fechas</th>
-                            <th scope="col" className="py-3 px-6">Días</th>
-                            <th scope="col" className="py-3 px-6">Tipo</th>
-                            <th scope="col" className="py-3 px-6">Estado</th>
-                            <th scope="col" className="py-3 px-6">Comentarios</th>
-                            {actionType !== 'none' && <th scope="col" className="py-3 px-6">Acciones</th>}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {requests.length === 0 ? (
-                            <tr>
-                                <td colSpan={getColSpan()} className="py-4 px-6 text-center text-gray-500">
-                                    No hay solicitudes para mostrar.
-                                </td>
-                            </tr>
-                        ) : requests.map(req => (
-                            <tr key={req.id} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                                {showEmployeeColumn && <td className="py-4 px-6 font-medium text-gray-900 whitespace-nowrap dark:text-white">{req.userName}</td>}
-                                <td className="py-4 px-6">{formatDateToSpanish(req.startDate)} - {formatDateToSpanish(req.endDate)}</td>
-                                <td className="py-4 px-6">{req.days}</td>
-                                <td className="py-4 px-6">{req.type}</td>
-                                <td className="py-4 px-6"><StatusBadge status={req.status} /></td>
-                                <td className="py-4 px-6 text-xs">
-                                    {req.employeeComment && <p><strong>Empleado:</strong> {req.employeeComment}</p>}
-                                    {req.approverComment && <p><strong>Aprobador:</strong> {req.approverComment}</p>}
-                                    {req.approvedBy && <p className="italic text-gray-500 mt-1">Gestionado por: {req.approvedBy.name}</p>}
-                                </td>
-                                {actionType !== 'none' && (
-                                    <td className="py-4 px-6 space-x-2">
+            <div className="space-y-4">
+                {requests.map(req => (
+                    <div key={req.id} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                        <div className="flex justify-between items-start">
+                             <div>
+                                <StatusBadge status={req.status} />
+                                {showEmployeeColumn && <span className="ml-2 font-bold text-gray-800 dark:text-gray-100">{req.userName}</span>}
+                            </div>
+                            <span className="text-sm text-gray-500 dark:text-gray-400">{formatDateToSpanish(req.createdAt)}</span>
+                        </div>
+                        <div className="mt-3 sm:flex justify-between items-end">
+                            <div>
+                                <p className="text-sm text-gray-600 dark:text-gray-300">
+                                    <span className="font-semibold">Período:</span> {formatDateToSpanish(req.startDate)} - {formatDateToSpanish(req.endDate)}
+                                </p>
+                                <p className="text-sm text-gray-600 dark:text-gray-300">
+                                    <span className="font-semibold">Días:</span> {req.days}
+                                </p>
+                                <p className="text-sm text-gray-600 dark:text-gray-300">
+                                    <span className="font-semibold">Tipo:</span> {req.type}
+                                </p>
+                            </div>
+                             <div className="mt-3 sm:mt-0">
+                                {(actionType !== 'none' || onDelete) && (
+                                    <div className="flex items-center space-x-4">
                                         {actionType === 'approve-reject' && req.status === REQUEST_STATUSES.PENDING && onAction && (
                                             <>
-                                                <button onClick={() => setActionState({ action: 'approve', requestId: req.id })} className="font-medium text-green-600 dark:text-green-500 hover:underline">Aprobar</button>
-                                                <button onClick={() => setActionState({ action: 'reject', requestId: req.id })} className="font-medium text-red-600 dark:text-red-500 hover:underline">Rechazar</button>
+                                                <button onClick={() => setActionState({ action: 'approve', requestId: req.id })} className="font-semibold text-sm text-green-600 hover:text-green-800">Aprobar</button>
+                                                <button onClick={() => setActionState({ action: 'reject', requestId: req.id })} className="font-semibold text-sm text-red-600 hover:text-red-800">Rechazar</button>
                                             </>
                                         )}
                                         {actionType === 'edit' && onEdit && (
-                                            <button onClick={() => onEdit(req)} className="font-medium text-indigo-600 dark:text-indigo-500 hover:underline">Editar</button>
+                                            <button onClick={() => onEdit(req)} className="font-semibold text-sm text-indigo-600 hover:text-indigo-800">Editar</button>
                                         )}
-                                    </td>
+                                        {onDelete && (
+                                            (showEmployeeColumn || (!showEmployeeColumn && req.status === REQUEST_STATUSES.PENDING)) &&
+                                            <button 
+                                                onClick={() => setRequestToDelete(req.id)} 
+                                                className="font-semibold text-sm text-red-600 hover:text-red-800 flex items-center"
+                                                title="Eliminar Solicitud"
+                                            >
+                                                <TrashIcon className="w-4 h-4 mr-1" />
+                                                <span>Eliminar</span>
+                                            </button>
+                                        )}
+                                    </div>
                                 )}
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                            </div>
+                        </div>
+                         {(req.employeeComment || req.approverComment) && (
+                            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 space-y-1">
+                                {req.employeeComment && <p><strong>Empleado:</strong> {req.employeeComment}</p>}
+                                {req.approverComment && <p><strong>Aprobador:</strong> {req.approverComment}</p>}
+                            </div>
+                        )}
+                    </div>
+                ))}
             </div>
 
             {actionState.action && (
@@ -148,6 +167,35 @@ const RequestTable: React.FC<RequestTableProps> = ({ requests, showEmployeeColum
                                 }`}
                             >
                                 Confirmar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {requestToDelete !== null && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center modal-container">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 w-full max-w-md modal-content">
+                        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4">
+                            Confirmar Eliminación
+                        </h2>
+                        <p className="mb-4 text-gray-600 dark:text-gray-400">
+                            ¿Estás seguro de que quieres eliminar esta solicitud? Esta acción no se puede deshacer.
+                        </p>
+                        <div className="flex justify-end space-x-4">
+                            <button 
+                                type="button" 
+                                onClick={() => setRequestToDelete(null)}
+                                className="text-gray-600 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700"
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                type="button" 
+                                onClick={handleConfirmDelete} 
+                                className="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5"
+                            >
+                                Eliminar
                             </button>
                         </div>
                     </div>

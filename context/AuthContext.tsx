@@ -10,7 +10,7 @@ interface AuthContextType {
     error: string | null;
     login: (email: string, password: string) => Promise<void>;
     logout: () => void;
-    addUser: (user: Omit<User, 'id' | 'annualLeave'> & { totalLeave: number }) => Promise<void>;
+    addUser: (user: Omit<User, 'id' | 'annualLeave'> & { totalLeave: number; password?: string; }) => Promise<void>;
     updateUser: (user: User) => Promise<void>;
     deleteUser: (userId: number) => Promise<void>;
 }
@@ -84,29 +84,48 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         sessionStorage.clear();
     };
 
-    const addUser = async (userData: Omit<User, 'id' | 'annualLeave' | 'password'> & { totalLeave: number }) => {
-        const newUser = await callApi('addUser', { user: userData, totalLeave: userData.totalLeave });
-        setUsers(prev => [...prev, newUser]);
-        sessionStorage.setItem('vacationManagerUsers', JSON.stringify([...users, newUser]));
+    const addUser = async (userData: Omit<User, 'id' | 'annualLeave'> & { totalLeave: number; password?: string }) => {
+        try {
+            const { totalLeave, ...userPayload } = userData;
+            const newUser = await callApi('addUser', { user: userPayload, totalLeave: totalLeave });
+            const updatedUsers = [...users, newUser];
+            setUsers(updatedUsers);
+            sessionStorage.setItem('vacationManagerUsers', JSON.stringify(updatedUsers));
+        } catch (error) {
+            console.error("Failed to add user:", error);
+            throw error;
+        }
     };
 
     const updateUser = async (updatedUser: User) => {
-        const returnedUser = await callApi('updateUser', { user: updatedUser });
-        const newUsers = users.map(u => (u.id === returnedUser.id ? returnedUser : u));
-        setUsers(newUsers);
-        sessionStorage.setItem('vacationManagerUsers', JSON.stringify(newUsers));
+        try {
+            const returnedUser = await callApi('updateUser', { user: updatedUser });
+            const newUsers = users.map(u => (u.id === returnedUser.id ? returnedUser : u));
+            setUsers(newUsers);
+            sessionStorage.setItem('vacationManagerUsers', JSON.stringify(newUsers));
 
-        if (user?.id === returnedUser.id) {
-            setUser(returnedUser);
-            sessionStorage.setItem('vacationManagerUser', JSON.stringify(returnedUser));
+            if (user?.id === returnedUser.id) {
+                setUser(returnedUser);
+                sessionStorage.setItem('vacationManagerUser', JSON.stringify(returnedUser));
+            }
+        } catch (error) {
+            console.error("Failed to update user:", error);
+            // Re-throw to allow the calling function (e.g., in RequestContext) to handle the failure.
+            throw error;
         }
     };
 
     const deleteUser = async (userId: number) => {
-        await callApi('deleteUser', { userId });
-        const newUsers = users.filter(u => u.id !== userId);
-        setUsers(newUsers);
-        sessionStorage.setItem('vacationManagerUsers', JSON.stringify(newUsers));
+        try {
+            await callApi('deleteUser', { userId });
+            const newUsers = users.filter(u => u.id !== userId);
+            setUsers(newUsers);
+            sessionStorage.setItem('vacationManagerUsers', JSON.stringify(newUsers));
+        } catch (error) {
+            console.error("Failed to delete user:", error);
+            // Re-throw error to be caught by the calling function
+            throw error;
+        }
     };
 
     return (

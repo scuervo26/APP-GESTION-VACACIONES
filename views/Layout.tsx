@@ -1,4 +1,5 @@
-import React, { useContext } from 'react';
+
+import React, { useContext, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { ROLES } from '../constants';
@@ -8,13 +9,13 @@ const NavItem: React.FC<{ to: string; icon: React.ReactNode; label: string; }> =
     <NavLink
         to={to}
         className={({ isActive }) =>
-            `flex items-center p-2 text-base font-normal rounded-lg transition duration-75 group ${
-            isActive ? 'bg-indigo-700 text-white' : 'text-gray-300 hover:bg-indigo-600 hover:text-white'
+            `flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+            isActive ? 'bg-indigo-100 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'
             }`
         }
     >
         {icon}
-        <span className="ml-3">{label}</span>
+        <span className="ml-2">{label}</span>
     </NavLink>
 );
 
@@ -23,45 +24,47 @@ const Layout: React.FC = () => {
     const { user, logout } = authContext!;
 
     return (
-        <div className="flex h-screen bg-gray-100 dark:bg-gray-800">
-            {/* Sidebar */}
-            <aside className="w-64 flex-shrink-0 bg-indigo-800 text-white flex flex-col">
-                <div className="h-16 flex items-center justify-center text-2xl font-bold border-b border-indigo-700">
-                    <CalendarIcon className="w-8 h-8 mr-2"/>
-                    <span>Vacaciones</span>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-800">
+            {/* Top Navigation Bar */}
+            <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center justify-between h-16">
+                        {/* Logo */}
+                        <div className="flex items-center">
+                            <div className="flex-shrink-0 flex items-center text-xl font-bold text-indigo-600">
+                                <CalendarIcon className="w-7 h-7 mr-2"/>
+                                <span>VacationHub</span>
+                            </div>
+                        </div>
+
+                        {/* Navigation Links */}
+                        <nav className="hidden md:flex md:items-center md:space-x-4">
+                            <NavItem to="/dashboard" icon={<HomeIcon className="w-5 h-5"/>} label="Dashboard" />
+                            <NavItem to="/calendar" icon={<CalendarIcon className="w-5 h-5"/>} label="Calendario" />
+                            {user?.role === ROLES.APPROVER && (
+                                <NavItem to="/employees" icon={<UsersIcon className="w-5 h-5"/>} label="Empleados" />
+                            )}
+                        </nav>
+                        
+                        {/* User Menu */}
+                        <div className="flex items-center">
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-200 mr-3">{user?.name}</span>
+                            <button 
+                                onClick={logout}
+                                title="Cerrar Sesión"
+                                className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                            >
+                                <LogoutIcon className="w-5 h-5"/>
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <nav className="flex-1 p-4 space-y-2">
-                    <NavItem to="/dashboard" icon={<HomeIcon className="w-6 h-6"/>} label="Dashboard" />
-                    <NavItem to="/calendar" icon={<CalendarIcon className="w-6 h-6"/>} label="Calendario de Equipo" />
-                    {user?.role === ROLES.APPROVER && (
-                        <NavItem to="/employees" icon={<UsersIcon className="w-6 h-6"/>} label="Gestionar Empleados" />
-                    )}
-                </nav>
-                 <div className="p-4 border-t border-indigo-700">
-                     <button 
-                        onClick={logout}
-                        className="w-full flex items-center p-2 text-base font-normal text-gray-300 rounded-lg hover:bg-indigo-600 hover:text-white group"
-                     >
-                         <LogoutIcon className="w-6 h-6"/>
-                         <span className="ml-3">Cerrar Sesión</span>
-                     </button>
-                 </div>
-            </aside>
+            </header>
 
             {/* Main content */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-                <header className="h-16 bg-white dark:bg-gray-900 shadow-md flex items-center justify-between px-6">
-                    <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
-                        Bienvenido, {user?.name}
-                    </h1>
-                     <div className="text-sm text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded-full">
-                        Rol: <span className="font-medium text-gray-800 dark:text-gray-200">{user?.role}</span>
-                    </div>
-                </header>
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-800 p-6">
-                    <Outlet />
-                </main>
-            </div>
+            <main className="container mx-auto p-4 sm:p-6 lg:p-8">
+                <Outlet />
+            </main>
         </div>
     );
 };

@@ -9,9 +9,10 @@ interface RequestModalProps {
     onSubmit?: (request: Omit<VacationRequest, 'id' | 'userName' | 'userId' | 'createdAt'>) => void;
     onSubmitEdit?: (request: VacationRequest) => void;
     requestToEdit?: VacationRequest | null;
+    availableDays?: number;
 }
 
-const RequestModal: React.FC<RequestModalProps> = ({ isOpen, onClose, onSubmit, onSubmitEdit, requestToEdit }) => {
+const RequestModal: React.FC<RequestModalProps> = ({ isOpen, onClose, onSubmit, onSubmitEdit, requestToEdit, availableDays }) => {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [type, setType] = useState<RequestType>(REQUEST_TYPES.VACATION);
@@ -38,20 +39,23 @@ const RequestModal: React.FC<RequestModalProps> = ({ isOpen, onClose, onSubmit, 
 
     if (!isOpen) return null;
     
-    // Simple business day calculation (Mon-Fri)
     const calculateBusinessDays = (start: string, end: string): number => {
         if (!start || !end) return 0;
-        let count = 0;
-        const curDate = new Date(start);
-        const lastDate = new Date(end);
         
-        // Add one day to curDate to make it timezone-agnostic for loop comparison
-        curDate.setUTCDate(curDate.getUTCDate() + 1);
-        lastDate.setUTCDate(lastDate.getUTCDate() + 1);
+        // Using UTC to avoid timezone issues.
+        const startDateObj = new Date(start + 'T00:00:00Z');
+        const endDateObj = new Date(end + 'T00:00:00Z');
 
-        while (curDate <= lastDate) {
-            const dayOfWeek = curDate.getUTCDay();
-            if (dayOfWeek !== 0 && dayOfWeek !== 6) { // 0=Sun, 6=Sat
+        if (startDateObj > endDateObj) {
+            return 0;
+        }
+
+        let count = 0;
+        const curDate = new Date(startDateObj);
+
+        while (curDate <= endDateObj) {
+            const dayOfWeek = curDate.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+            if (dayOfWeek !== 0 && dayOfWeek !== 6) {
                 count++;
             }
             curDate.setUTCDate(curDate.getUTCDate() + 1);
@@ -73,6 +77,12 @@ const RequestModal: React.FC<RequestModalProps> = ({ isOpen, onClose, onSubmit, 
         const days = calculateBusinessDays(startDate, endDate);
         if (days <= 0) {
             alert("La fecha de fin debe ser posterior o igual a la fecha de inicio.");
+            return;
+        }
+
+        // New validation: Check against available days only for new requests
+        if (!isEditMode && availableDays !== undefined && days > availableDays) {
+            alert(`No puedes solicitar ${days} días. Solo tienes ${availableDays} días disponibles.`);
             return;
         }
 

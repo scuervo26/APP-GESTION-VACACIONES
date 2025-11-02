@@ -5,13 +5,14 @@ import { ROLES } from '../constants';
 interface UserModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (user: Omit<User, 'id' | 'annualLeave'>, totalLeave: number) => void;
+    onSave: (user: Omit<User, 'id' | 'annualLeave'> & { password?: string }, totalLeave: number) => void;
     userToEdit: User | null;
 }
 
 const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSave, userToEdit }) => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [role, setRole] = useState<Role>(ROLES.EMPLOYEE);
     const [totalLeave, setTotalLeave] = useState(22);
 
@@ -21,10 +22,12 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSave, userToEd
             setEmail(userToEdit.email);
             setRole(userToEdit.role);
             setTotalLeave(userToEdit.annualLeave.total);
+            setPassword(''); // Ensure password is not displayed for existing users
         } else {
             // Reset form for new user
             setName('');
             setEmail('');
+            setPassword('');
             setRole(ROLES.EMPLOYEE);
             setTotalLeave(22);
         }
@@ -34,7 +37,11 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSave, userToEd
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave({ name, email, role }, totalLeave);
+        if (!userToEdit && !password.trim()) {
+            alert("La contraseña es obligatoria para los nuevos empleados.");
+            return;
+        }
+        onSave({ name, email, role, password }, totalLeave);
     };
 
     return (
@@ -52,6 +59,20 @@ const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSave, userToEd
                         <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Email</label>
                         <input type="email" id="email" value={email} onChange={e => setEmail(e.target.value)} required className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5" />
                     </div>
+                    {!userToEdit && (
+                        <div className="mb-4">
+                            <label htmlFor="password" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Contraseña</label>
+                            <input 
+                                type="password" 
+                                id="password" 
+                                value={password} 
+                                onChange={e => setPassword(e.target.value)} 
+                                required 
+                                className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5" 
+                                placeholder="••••••••"
+                            />
+                        </div>
+                    )}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                         <div>
                             <label htmlFor="role" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Rol</label>

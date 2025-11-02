@@ -22,7 +22,7 @@ export const REQUEST_TYPES: { [key: string]: RequestType } = {
 
 // IMPORTANT: You must deploy the Google Apps Script and paste the
 // resulting Web App URL here. See the instructions for details.
-export const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_kQMUE2IhuRXIAm9gJv__Kmv_isDlG5WkWi9oydoLbYRKi-JNQW4jbV4d0IJCHNyj8g/exec';
+export const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwI6Q3Hq9c83cayiO9RTbmA_hyWlyFzr9m15U77oUDsLXdCpwW0GBdaiXSgKXPq6rr2oA/exec';
 
 
 // Expected column order in the Google Sheets tables. This is crucial for data mapping.
